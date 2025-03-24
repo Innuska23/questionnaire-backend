@@ -5,13 +5,44 @@ exports.getQuestionnaires = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-
-    const questionnaires = await Questionnaire.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const sortBy = req.query.sortBy || "createdAt";
 
     const total = await Questionnaire.countDocuments();
+
+    if (sortBy === "questions") {
+      const questionnaires = await Questionnaire.aggregate([
+        {
+          $addFields: {
+            questionsCount: {
+              $cond: {
+                if: { $isArray: "$questions" },
+                then: { $size: "$questions" },
+                else: 0,
+              },
+            },
+          },
+        },
+        { $sort: { questionsCount: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      ]);
+
+      return res.json({
+        questionnaires,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      });
+    }
+
+    let sortStage = {};
+    if (sortBy === "name") sortStage = { name: 1 };
+    else if (sortBy === "completions") sortStage = { completions: -1 };
+    else sortStage = { createdAt: -1 };
+
+    const questionnaires = await Questionnaire.find()
+      .sort(sortStage)
+      .skip(skip)
+      .limit(limit);
 
     res.json({
       questionnaires,
@@ -19,8 +50,8 @@ exports.getQuestionnaires = async (req, res) => {
       currentPage: page,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Помилка сервера" });
+    console.error("❌ Error in getQuestionnaires:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -29,13 +60,13 @@ exports.getQuestionnaire = async (req, res) => {
     const questionnaire = await Questionnaire.findById(req.params.id);
 
     if (!questionnaire) {
-      return res.status(404).json({ message: "Опитування не знайдено" });
+      return res.status(404).json({ message: "Questionnaire not found" });
     }
 
     res.json(questionnaire);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Помилка сервера" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -60,7 +91,7 @@ exports.updateQuestionnaire = async (req, res) => {
     );
 
     if (!questionnaire) {
-      return res.status(404).json({ message: "Опитування не знайдено" });
+      return res.status(404).json({ message: "Questionnaire not found" });
     }
 
     res.json(questionnaire);
@@ -75,12 +106,12 @@ exports.deleteQuestionnaire = async (req, res) => {
     const questionnaire = await Questionnaire.findByIdAndDelete(req.params.id);
 
     if (!questionnaire) {
-      return res.status(404).json({ message: "Опитування не знайдено" });
+      return res.status(404).json({ message: "Questionnaire not found" });
     }
 
-    res.json({ message: "Опитування видалено" });
+    res.json({ message: "Questionnaire deleted" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Помилка сервера" });
+    res.status(500).json({ message: "Server error" });
   }
 };

@@ -26,6 +26,6 @@ exports.getResponses = async (req, res) => {
     res.json(responses);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Помилка сервера" });
+    res.status(500).json({ message: "Server error" });
   }
 };
