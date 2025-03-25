@@ -9,9 +9,12 @@ dotenv.config();
 const app = express();
 
 app.use(
-  cors({
-    origin:
+  ors({
+    origin: [
       "https://questionnaire-3c7j-git-main-innuska23s-projects.vercel.app",
+      "https://*.vercel.app",
+      "http://localhost:3000",
+    ],
     credentials: true,
   })
 );
