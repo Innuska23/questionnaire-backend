@@ -8,7 +8,13 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin:
+      "https://questionnaire-3c7j-git-main-innuska23s-projects.vercel.app",
+    credentials: true,
+  })
+);
 app.use(bodyParser.json());
 
 app.use("/api/questionnaires", require("./routes/questionnaires"));
